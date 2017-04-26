@@ -21,9 +21,9 @@ void C_fourCombine(uint8_t* src, uint32_t srcw, uint32_t srch,
 			for(j = 0; j < srch/2 ; j++)
 			{
 				RGBA* p11_src = (RGBA*) &src_matriz[2*i][2*(j*4)];
-				RGBA* p21_src = (RGBA*) &src_matriz[2*i + 1][2*(j*4)];
-				RGBA* p12_src = (RGBA*) &src_matriz[2*i][2*((j+1)*4)];
-				RGBA* p22_src = (RGBA*) &src_matriz[2*i +1][2*((j+1)*4)];
+				RGBA* p21_src = (RGBA*) &src_matriz[2*(i + 1)][2*(j*4)];
+				RGBA* p12_src = (RGBA*) &src_matriz[2*i][2*j*4+1*4];
+				RGBA* p22_src = (RGBA*) &src_matriz[2*(i +1)][2*j*4+1*4];
 					
 				
 				RGBA* p11 = (RGBA*) &dst_matriz[i][4*j];
