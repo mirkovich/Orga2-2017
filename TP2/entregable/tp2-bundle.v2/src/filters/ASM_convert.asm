@@ -16,8 +16,20 @@ section .data
 		
 	aux2: dd 1.0, 256.0, 256.0, 256.0
 	
-	aux3: db 0, 128, 128, 16
+	aux3: dd 0, 128, 128, 16
 	
+	s_16: dd 0.0, 16.0, 16.0, 16.0
+	
+	s_128a: dd 0.0, 128.0, 128.0, 0
+	
+	s_128b: dd 0.0, 0.0, 128.0, 128.0
+	
+	m_Y: dd 1.0, 298.0, 298.0, 298.0
+	
+	m_U: dd 0.0, 516.0, -100.0, 0.0
+	
+	m_V: dd 0.0, 0.0, -208.0, 409.0
+		
 section .text
 
 
@@ -25,6 +37,80 @@ ASM_convertYUVtoRGB:			;RDI = src, ESI = srcw, EDX = srch
 								;RCX = dst, R8d = dstw, R9d = dsth
 	push rbp
 	mov rbp, rsp
+	push rbx
+	push r12
+	push r13
+	push r14
+	
+	xor rax, rax
+	mov rbx, rsi
+	mov r12, rdx
+	mov r13, r8
+	mov r14, r9
+	
+	mov rsi, rcx
+	mov eax, r8d
+	mul r9d
+	
+	mov ecx, eax
+	
+	pxor xmm0, xmm0
+	
+	movups xmm9, [aux2]
+	movups xmm8, [aux1]
+	
+	movups xmm10, [s_16]
+	movups xmm11, [s_128a]
+	movups xmm12, [s_128b]
+	
+	movups xmm13, [m_Y]
+	movups xmm14, [m_U]
+	movups xmm15, [m_V]
+	
+
+.ciclo:
+	movd xmm1, [rdi]
+	
+	punpcklbw xmm1, xmm0				;xmm1 = | 0 | 0 | 0 | 0 | ext0 Y | ext0 U | ext0 V | ext0 A |
+	punpcklwd xmm1, xmm0				;xmm1 = | ext Y | ext U | ext V | ext A |
+		
+	cvtdq2ps xmm1, xmm1                 ;xmm1 = conversion a float
+	
+	pshufd xmm2, xmm1, 0xa8				;xmm2 = |  U  |  U  |  U  |  A  |
+	pshufd xmm3, xmm1, 0x54				;xmm3 = |  V  |  V  |  V  |  A  |
+	pshufd xmm1, xmm1, 0xfc				;xmm1 = |  Y  |  Y  |  Y  |  A  |
+	
+	subps xmm1, xmm10
+	subps xmm2, xmm11
+	subps xmm3, xmm12
+	
+	mulps xmm1, xmm13
+	mulps xmm2, xmm14
+	mulps xmm3, xmm15
+	
+	addps xmm1, xmm2
+	addps xmm1, xmm3
+	
+	addps xmm1, xmm8
+
+	divps xmm1, xmm9
+	
+	cvtps2dq xmm1, xmm1
+	
+	packusdw xmm1, xmm0					
+	packuswb xmm1, xmm0
+	
+	movd [rsi], xmm1
+	
+	add rdi, 4
+	add rsi, 4
+	
+	loop .ciclo
+	
+	pop r14
+	pop r13
+	pop r12
+	pop rbx
 	pop rbp
 	ret
 
@@ -82,13 +168,14 @@ ASM_convertRGBtoYUV:				;RDI = src, ESI = srcw, EDX = srch
 	addps xmm1, xmm12					;xmm1 = | ++128 |  ++128 | ++128 | A |
 	divps xmm1, xmm11					;xmm1 = | >> 8| >> 8| >> 8 | >> 8|
 	
-	;addps xmm1, xmm10
+
 	cvtps2dq xmm1, xmm1
+	paddd xmm1, xmm10
 	
-	packssdw xmm1, xmm0					;xmm1 = | 0 | 0 | 0 | 0 | Y | U | V | A | 
-	packsswb xmm1, xmm0
+	packusdw xmm1, xmm0					;xmm1 = | 0 | 0 | 0 | 0 | Y | U | V | A | 
+	packuswb xmm1, xmm0
 	
-	paddb xmm1, xmm10
+	;paddb xmm1, xmm10
 	
 	movd [rsi], xmm1
 	
