@@ -17,9 +17,9 @@ void C_convertRGBtoYUV(uint8_t* src, uint32_t srcw, uint32_t srch,
 		
 		int i,j;
 		
-		for(i = 0; i < srcw; i++)
+		for(i = 0; i < srch; i++)
 		{
-			for(j = 0; j < srch; j++)
+			for(j = 0; j < srcw; j++)
 			{
 				RGBA* p_s = (RGBA*) &src_matriz[i][4*j];
 				YUVA* p_d = (YUVA*) &dst_matriz[i][4*j];
@@ -40,16 +40,48 @@ void C_convertYUVtoRGB(uint8_t* src, uint32_t srcw, uint32_t srch,
 		
 		int i,j;
 		
-		for(i = 0; i < srcw; i++)
+		for(i = 0; i < srch; i++)
 		{
-			for(j = 0; j < srch; j++)
+			for(j = 0; j < srcw; j++)
 			{
 				YUVA* p_s = (YUVA*) &src_matriz[i][4*j];
 				RGBA* p_d = (RGBA*) &dst_matriz[i][4*j];
+				int y = p_s->y;
+				int u = p_s->u;
+				int v = p_s->v;
+				int r_d = ((298*(y - 16) + 409*(v - 128) + 128) >> 8); 
+				int g_d = ((298*(y - 16) - 100*(u - 128) - 208*(v - 128) +128) >> 8);
+				int b_d = ((298*(y - 16) + 516*(u -128) + 128) >> 8);
 				
-				p_d->r = ((298*(p_s->y - 16) + 409*(p_s->v - 128) + 128) >> 8); 
-				p_d->g = ((298*(p_s->y - 16) - 100*(p_s->u - 128) - 208*(p_s->v - 128) +128) >> 8); 
-				p_d->b = ((298*(p_s->y - 16) + 516*(p_s->u -128) + 128) >> 8); 
+				if(r_d >= 255)
+				{
+					r_d = 255;
+				}
+				else if(r_d < 0)
+				{
+				   r_d = 0;	
+				}
+				p_d->r = r_d;
+				
+				if(g_d >= 255)
+				{
+					g_d = 255;
+				}
+				else if(g_d < 0)
+				{
+					g_d = 0;
+				}
+				p_d->g = g_d; 
+				
+				if(b_d >= 255)
+				{
+					b_d = 255;
+				}
+				else if(b_d < 0)
+				{
+					b_d = 0;
+				}
+				p_d->b = b_d; 
 				p_d->a = p_s->a;
 			}
 		}
