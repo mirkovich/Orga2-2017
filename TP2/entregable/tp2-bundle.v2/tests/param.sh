@@ -18,7 +18,7 @@ DIFFER=../bin/diff
 DIFFYUV=3    # convertYUV
 DIFFRGB=3    # convertRGB
 DIFFFOUR=1   # fourCombine
-DIFFZOOM=2   # linearZoom
+DIFFZOOM=3   # linearZoom
 DIFFMAX=3    # maxCloser
 
 # Colores
