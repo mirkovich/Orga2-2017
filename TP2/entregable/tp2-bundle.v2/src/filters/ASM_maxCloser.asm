@@ -5,16 +5,8 @@ section .data
 ;seccion para constantes si las voy a usar
 const_unos: db 	0xff,0xff,0xff,0xff,	0xff,0xff,0xff,0xff,	0xff,0xff,0xff,0xff,	0xff,0xff,0xff,0xff ;
 float_unos: dd 1.0, 1.0, 1.0, 1.0
-filtro_A:       db 0  , 0  , 0  , 255 , 0  , 0  , 0  , 0, 0, 0, 0, 0, 0, 0, 0, 0
+filtro_A:   db 0,0,0,0xff,0,0,0,0, 0, 0, 0, 0, 0, 0, 0, 0
 section .text
-; Parámetros:
-; 	rdi = src
-; 	esi = srcw
-; 	edx = srch
-; 	rcx = dst
-; 	r8d = dstw
-; 	r9d = dsth
-;   xmm0 = val
 
 ;si voy a querer procesar el pixel(4,4), voy a necesitar de sus vecinos que forman el siguiente kernel
 ;| pixel(7,1) | pixel(7,2) | pixel(7,3) | pixel(7,4) | pixel(7,5) | pixel(7,6) | pixel(7,7) |
@@ -25,6 +17,10 @@ section .text
 ;| pixel(2,1) | pixel(2,2) | pixel(2,3) | pixel(2,4) | pixel(2,5) | pixel(2,6) | pixel(2,7) |
 ;| pixel(1,1) | pixel(1,2) | pixel(1,3) | pixel(1,4) | pixel(1,5) | pixel(1,6) | pixel(1,7) |
 
+; Parámetros:
+;RDI = src, ESI = srcw, EDX = srch
+;RCX = dst, R8d = dstw, R9d = dsth
+;xmm0 = val
 ASM_maxCloser:
 push rbp
 mov rbp, rsp
@@ -32,72 +28,90 @@ push r12
 push r13
 push r14
 push rbx
+	lea rax, [r8d * 4]	;cantidad de bytes por columna
+	add rcx, rax
+	lea rcx, [rcx+rax * 2 + 12]	;ubico comienzo en matriz destino
 	mov r10, rdi	;matriz fuente
 	mov r11, rcx	;matriz destino
-	sub esi, 6
-	sub edx, 6
-	pshufd xmm0 , xmm0, 00x0  ; xmm0  = |val|val|val|val|
+	sub esi, 12
+	sub edx, 12
+	pshufd xmm0 , xmm0, 0x00  ; xmm0  = |val|val|val|val|
 	movdqu xmm11, [float_unos]	;xmm11	=	|1.0|1.0|1.0|1.0|
 	subps xmm11, xmm0	;	xmm11 =		|1.0-val|1.0-val|1.0-val|1.0-val|
 	movdqu xmm8, [const_unos]
 	movdqu xmm9, [filtro_A]
 	pxor xmm7, xmm7
 	pxor xmm1, xmm1
-ciclo_filas:
-ciclo_columnas:
+	mov r12, 0 
+.ciclo_filas:
+	inc r12
+	cmp r12d, edx
+	jg .fin
+	mov rbx, 0		;pongo en cero el iterdor de columnas
+	mov rdi, r10
+	mov rcx, r11
+	lea r10, [r10 + rax]
+	lea r11, [r11 + rax]
+.ciclo_columnas:
 		movdqu xmm2, [rdi]		;xmm2 = | pixel(1,4) | pixel(1,3) | pixel(1,2) | pixel(1,1) |	fila1
 		call traer_maximos
 		;xmm1 = | max_componentes(1;j->(2,4))(a,r,g,b) | max_componentes(1,j->(1,3))(a,r,g,b) |
-		movdqu xmm2, [rdi+esi*4]	;xmm2 = | pixel(2,4) | pixel(2,3) | pixel(2,2) | pixel(2,1) |		fila 2
-		call traer_maximos
-		;xmm1 = | max_componentes(i->(1,2);j->(2,4))(a,r,g,b) | max_componentes(i->(1,2);j->(1,3))(a,r,g,b) |
-		movdqu xmm2, [rdi+esi*8]	;xmm2 = | pixel(3,4) | pixel(3,3) | pixel(3,2) | pixel(3,1) |		fila 3
-		call traer_maximos
-		;xmm1 = | max_componentes(i->(1,2,3);j->(2,4))(a,r,g,b) | max_componentes(i->(1,2,3);j->(1,3))(a,r,g,b) |
-		movdqu xmm2, [rdi+esi*16]	;xmm2 = | pixel(4,4) | pixel(4,3) | pixel(4,2) | pixel(4,1) |		fila 4
-		movdqu xmm6, xmm2		;guardo la fila 4 (el pixel en xmm6)
-		call traer_maximos
-		;xmm1 = | max_componentes(i->(1..4);j->(2,4))(a,r,g,b) | max_componentes(i->(1..4);j->(1,3))(a,r,g,b) |
-		movdqu xmm2, [rdi+esi*32]	;xmm2 = | pixel(5,4) | pixel(5,3) | pixel(5,2) | pixel(5,1) |		fila 5
-		call traer_maximos
-		;xmm1 = | max_componentes(i->(1..5);j->(2,4))(a,r,g,b) | max_componentes(i->(1..5);j->(1,3))(a,r,g,b) |
-		movdqu xmm2, [rdi+esi*64]	;xmm2 = | pixel(6,4) | pixel(6,3) | pixel(6,2) | pixel(6,1) |		fila 6
-		call traer_maximos
-		;xmm1 = | max_componentes(i->(1..6);j->(2,4))(a,r,g,b) | max_componentes(i->(1..6);j->(1,3))(a,r,g,b) |
-		movdqu xmm2, [rdi+esi*128]	;xmm2 = | pixel(7,4) | pixel(7,3) | pixel(7,2) | pixel(7,1) |		fila 7
-		call traer_maximos
-		;xmm1 = | max_componentes(i->(1..7);j->(2,4))(a,r,g,b) | max_componentes(i->(1..7);j->(1,3))(a,r,g,b) |
-		movdqu xmm2, [rdi]		;xmm2 = | ???? | pixel(1,7) | pixel(1,6) | pixel(1,5) |	fila1
+		movdqu xmm2, [rdi + 16]		;xmm2 = | ???? | pixel(1,7) | pixel(1,6) | pixel(1,5) |	fila1
 		pslldq xmm2, 4			;	
 		psrldq xmm2, 4			;xmm2 = | 0000 | pixel(1,7) | pixel(1,6) | pixel(1,5) |
 		call traer_maximos
 		
-		movdqu xmm2, [rdi]		;xmm2 = | ???? | pixel(2,7) | pixel(2,6) | pixel(2,5) |	fila2
+		add rdi, rax	;avanzo una fila
+		movdqu xmm2, [rdi]	;xmm2 = | pixel(2,4) | pixel(2,3) | pixel(2,2) | pixel(2,1) |		fila 2
+		call traer_maximos
+		;xmm1 = | max_componentes(i->(1,2);j->(2,4))(a,r,g,b) | max_componentes(i->(1,2);j->(1,3))(a,r,g,b) |
+		movdqu xmm2, [rdi+16]		;xmm2 = | ???? | pixel(2,7) | pixel(2,6) | pixel(2,5) |	fila2
 		pslldq xmm2, 4			;	
 		psrldq xmm2, 4			;xmm2 = | 0000 | pixel(2,7) | pixel(2,6) | pixel(2,5) |
 		call traer_maximos
 		
-		movdqu xmm2, [rdi]		;xmm2 = | ???? | pixel(3,7) | pixel(3,6) | pixel(3,5) |	fila3
+		add rdi, rax	;avanzo una fila
+		movdqu xmm2, [rdi]	;xmm2 = | pixel(3,4) | pixel(3,3) | pixel(3,2) | pixel(3,1) |		fila 3
+		call traer_maximos
+		;xmm1 = | max_componentes(i->(1,2,3);j->(2,4))(a,r,g,b) | max_componentes(i->(1,2,3);j->(1,3))(a,r,g,b) |
+		movdqu xmm2, [rdi + 16]		;xmm2 = | ???? | pixel(3,7) | pixel(3,6) | pixel(3,5) |	fila3
 		pslldq xmm2, 4			;	
 		psrldq xmm2, 4			;xmm2 = | 0000 | pixel(3,7) | pixel(3,6) | pixel(3,5) |
 		call traer_maximos
 		
-		movdqu xmm2, [rdi]		;xmm2 = | ???? | pixel(4,7) | pixel(4,6) | pixel(4,5) |	fila4
+		add rdi, rax	;avanzo una fila
+		movdqu xmm2, [rdi]	;xmm2 = | pixel(4,4) | pixel(4,3) | pixel(4,2) | pixel(4,1) |		fila 4
+		movdqu xmm6, xmm2		;guardo la fila 4 (el pixel en xmm6)
+		call traer_maximos
+		;xmm1 = | max_componentes(i->(1..4);j->(2,4))(a,r,g,b) | max_componentes(i->(1..4);j->(1,3))(a,r,g,b) |
+		movdqu xmm2, [rdi+16]		;xmm2 = | ???? | pixel(4,7) | pixel(4,6) | pixel(4,5) |	fila4
 		pslldq xmm2, 4			;	
 		psrldq xmm2, 4			;xmm2 = | 0000 | pixel(4,7) | pixel(4,6) | pixel(4,5) |
 		call traer_maximos
 		
-		movdqu xmm2, [rdi]		;xmm2 = | ???? | pixel(5,7) | pixel(5,6) | pixel(5,5) |	fila5
+		add rdi, rax	;avanzo una fila
+		movdqu xmm2, [rdi]	;xmm2 = | pixel(5,4) | pixel(5,3) | pixel(5,2) | pixel(5,1) |		fila 5
+		call traer_maximos
+		;xmm1 = | max_componentes(i->(1..5);j->(2,4))(a,r,g,b) | max_componentes(i->(1..5);j->(1,3))(a,r,g,b) |
+		movdqu xmm2, [rdi+16]		;xmm2 = | ???? | pixel(5,7) | pixel(5,6) | pixel(5,5) |	fila5
 		pslldq xmm2, 4			;	
 		psrldq xmm2, 4			;xmm2 = | 0000 | pixel(5,7) | pixel(5,6) | pixel(5,5) |
 		call traer_maximos
 		
-		movdqu xmm2, [rdi]		;xmm2 = | ???? | pixel(6,7) | pixel(6,6) | pixel(6,5) |	fila6
+		add rdi, rax	;avanzo una fila
+		movdqu xmm2, [rdi]	;xmm2 = | pixel(6,4) | pixel(6,3) | pixel(6,2) | pixel(6,1) |		fila 6
+		call traer_maximos
+		;xmm1 = | max_componentes(i->(1..6);j->(2,4))(a,r,g,b) | max_componentes(i->(1..6);j->(1,3))(a,r,g,b) |
+		movdqu xmm2, [rdi+16]		;xmm2 = | ???? | pixel(6,7) | pixel(6,6) | pixel(6,5) |	fila6
 		pslldq xmm2, 4			;	
 		psrldq xmm2, 4			;xmm2 = | 0000 | pixel(6,7) | pixel(6,6) | pixel(6,5) |
 		call traer_maximos
 		
-		movdqu xmm2, [rdi]		;xmm2 = | ???? | pixel(7,7) | pixel(7,6) | pixel(7,5) |	fila7
+		add rdi, rax	;avanzo una fila
+		movdqu xmm2, [rdi]	;xmm2 = | pixel(7,4) | pixel(7,3) | pixel(7,2) | pixel(7,1) |		fila 7
+		call traer_maximos
+		;xmm1 = | max_componentes(i->(1..7);j->(2,4))(a,r,g,b) | max_componentes(i->(1..7);j->(1,3))(a,r,g,b) |
+		movdqu xmm2, [rdi+16]		;xmm2 = | ???? | pixel(7,7) | pixel(7,6) | pixel(7,5) |	fila7
 		pslldq xmm2, 4			;	
 		psrldq xmm2, 4			;xmm2 = | 0000 | pixel(7,7) | pixel(7,6) | pixel(7,5) |
 		call traer_maximos
@@ -113,6 +127,7 @@ ciclo_columnas:
 		pand xmm1, xmm5			;xmm2 y xmm4 el resultado de las componentes mayores de pixeles(A..D)
 		por	xmm1, xmm4
 		;xmm1 = | max_componentes(i->(1..7);j->(1..7))(a,r,g,b) |
+		movdqu xmm3, xmm6
 		psrldq xmm6, 12
 		punpcklbw xmm6, xmm7 	;xmm6 = |0000|0000|0a0r|0g0b|
 		punpcklwd xmm6, xmm7 	;xmm6 = |000a|000r|000g|000b|
@@ -125,17 +140,23 @@ ciclo_columnas:
 		cvtps2dq xmm1, xmm1 	; xmm1 = | r | g | b |
 		packusdw xmm1, xmm7 	; xmm1 = |0000| 0000| 000r| 0g0b |
 		packuswb xmm1, xmm7		; xmm1 = |0000|0000|0000|0rgb|
-		paddb  xmm1, xmm9
-		;movq rbx, xmm1
-		movd [rsi], xmm1
-fin:
+		;pand  xmm3, xmm9
+		;paddb xmm1, xmm3
+		movq rbx, xmm1
+		movd [rcx], xmm1
+		cmp ebx, esi
+		jge .ciclo_filas
+		inc rbx	;incremento el iterados de columnas
+		lea rdi, [r10 + rbx * 4]
+		lea rcx, [r11 + rbx * 4]
+		jmp .ciclo_columnas
+.fin:
 pop rbx
 pop r14
 pop r13
 pop r12
 pop rbp
 ret
-
 
 traer_maximos:
 	movdqu xmm4, xmm2		;xmm2 = |PixelD(a,r,g,b) | PixelC(a,r,g,b) |PixelB(a,r,g,b) | PixelA(a,r,g,b)|
@@ -155,4 +176,4 @@ traer_maximos:
 	pxor xmm5, xmm8			;invierto los bits del resultado
 	pand xmm2, xmm5			;el resultado de los componentes mayores de pixeles(i,j) con i->(1,2) y j->(1,2,3 y 4)
 	por xmm1, xmm2
-	ret
+ret
