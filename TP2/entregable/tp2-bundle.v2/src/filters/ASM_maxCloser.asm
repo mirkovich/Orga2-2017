@@ -40,27 +40,27 @@ push rbx
 	lea rcx, [r8d * 3]	;cant de pixels en una fila * 3 filas
 	shr rcx, 2			;divido entre 4 ya que voy a procesar de a 4 pixeles a la vez
 	call pintar_borde_inferior
-	lea rax, [r8d * 4]	;cantidad de bytes por columna
-	;add rcx, rax
-	;lea rcx, [rcx+rax * 2 + 12]	;ubico comienzo en matriz destino
-	lea r11, [r11 + 12]	;ubico comienzo en matriz destino
-	
+	lea rax, [r8d * 4]	;rax = cantidad de bytes por columna
 	sub esi, 6
 	sub edx, 6
-	
 	pxor xmm7, xmm7
-	pxor xmm1, xmm1
-	mov r12, 0 
+	;pxor xmm1, xmm1
+	mov r12, 0
+	jmp .comienza_aqui
 .ciclo_filas:
+	movdqu [rcx], xmm8	;pongo en blanco el borde derecho
+.comienza_aqui:
 	inc r12
 	cmp r12d, edx
-	jg .fin
+	jg .pintar_borde_superior
 	mov rbx, 0		;pongo en cero el iterdor de columnas
 	mov rdi, r10
 	mov rcx, r11
+	movdqu [rcx], xmm8	;pongo en blanco el borde izquierdo
+	add rcx, 12
 	lea r10, [r10 + rax]
 	lea r11, [r11 + rax]
-.ciclo_columnas:
+	.ciclo_columnas:
 		pxor xmm1, xmm1
 		;****************proceso la fila 1 del kernel*******************************
 		movdqu xmm2, [rdi]		;xmm2 = | pixel(1,4) | pixel(1,3) | pixel(1,2) | pixel(1,1) |
@@ -153,12 +153,21 @@ push rbx
 		pand  xmm1, xmm9
 		paddb xmm1, xmm3
 		movd [rcx], xmm1
+		
+		add rcx, 4
+		inc rbx	;incremento el iterados de columnas
 		cmp ebx, esi
 		jge .ciclo_filas
-		inc rbx	;incremento el iterados de columnas
 		lea rdi, [r10 + rbx * 4]
-		lea rcx, [r11 + rbx * 4]
 		jmp .ciclo_columnas
+
+.pintar_borde_superior:
+	lea rcx, [r8d * 3]	;cant de pixels en una fila * 3 filas
+	shr rcx, 2			;divido entre 4 ya que voy a procesar de a 4 pixeles a la vez
+	.ciclo_superior:
+		movdqu [r11], xmm8
+		add r11, 16
+		loop .ciclo_superior
 .fin:
 pop rbx
 pop r14
