@@ -19,8 +19,7 @@ push rbx
 	dec edx
 	;dec r9d
 	mov r8d, edx
-	;mov r12, rcx; puntero a matriz destino
-	;sub edx, 1 
+	shr esi, 1	;anho/2   voy a procesar de a dos pixeles por vez
 	.ciclo_filas:
 	cmp r8d, 0
 	jle .borde_superior
@@ -28,44 +27,43 @@ push rbx
 	mov r11, rcx
 	lea r9d, [esi -1]
 	.ciclo_columnas:
-		movdqu xmm0, [r10]	;xmm0 = |B'(b,g,r,a) | A'(b,g,r,a) | B(b,g,r,a) | A(b,g,r,a)|
-		movdqu xmm1, xmm0
-		punpcklbw xmm1, xmm7	;xmm1 = | B(b,g,r,a) | A(b,g,r,a) |
-		movdqu xmm4, xmm1
-		psrldq xmm4, 8			;xmm4 = | ****** | B(b,g,r,a) |
-		paddusw xmm4, xmm1		;xmm4 = | *****  | A + B |
-			
-		movdqu xmm2, [r10 + rax]
-		movdqu xmm3, xmm2
-		punpcklbw xmm3, xmm7	;xmm3 = | D(b,g,r,a) | C(b,g,r,a) |
-		movdqu xmm5, xmm3
-		psrldq xmm5, 8			;xmm5 = | ****** | D(b,g,r,a) |
-		paddusw xmm5, xmm3		;xmm5 = | ****** | C + D |
+		movdqu xmm0, [r10]		;xmm0 = | 1,4(b,g,r,a) | 1,3(b,g,r,a) | 1,2(b,g,r,a) | 1,1(b,g,r,a)|
+		movdqu xmm1, xmm0		
+		psrldq xmm1, 4			;xmm1 = | 0000 | 1,4(b,g,r,a) | 1,3(b,g,r,a) | 1,2(b,g,r,a) |
+		punpcklbw xmm0, xmm7	;xmm0 = | 1,2(b,g,r,a) | 1,1(b,g,r,a)|
+		punpcklbw xmm1, xmm7	;xmm1 = | 1,3(b,g,r,a) | 1,2(b,g,r,a)|
+		paddusw xmm1, xmm0		;xmm1 = | 1,2 + 1,3 | 1,1 + 1,2|
+		movdqu xmm3, xmm0		;xmm3 = | 1,2(b,g,r,a) | 1,1(b,g,r,a)|
+		movdqu xmm2, xmm1		;xmm2 = | 1,2 + 1,3 | 1,1 + 1,2|
+		psrlw xmm1, 1			;xmm1 = | (1,2 + 1,3)/2 | (1,1 + 1,2)/2|
+		packuswb xmm0, xmm7		;xmm0 = | 0000 | 0000 | 1,2 | 1,1 |
+		packuswb xmm1, xmm7		;xmm1 = | 0000 | 0000 | (1,2+1,3)/2 | (1,1+1,2)/2 |
 		
-		paddusw xmm1, xmm3		;xmm1 = | B+D | A+C |
-		paddusw xmm5, xmm4		;xmm5 = | ****** | A+B+C+D |
+		pshufd xmm0, xmm0, 0x98	;xmm0 = | 0000 | 1,2 | 0000 | 1,1 |
+		pshufd xmm1, xmm1, 0x62	;xmm1 = | (1,2+1,3)/2 | 0000 | (1,1+1,2)/2 | 0000 |
+		paddusb xmm0, xmm1		;xmm0 = | (1,2+1,3)/2 | 1,2 | (1,1+1,2)/2 | 1,1 |
+		movdqu [r11], xmm0
+				
+		movdqu xmm0, [r10 + rax];xmm0 = | 2,4(b,g,r,a) | 2,3(b,g,r,a) | 2,2(b,g,r,a) | 2,1(b,g,r,a)|
+		movdqu xmm1, xmm0		
+		psrldq xmm1, 4			;xmm1 = | 0000 | 2,4(b,g,r,a) | 2,3(b,g,r,a) | 2,2(b,g,r,a) |
+		punpcklbw xmm0, xmm7	;xmm0 = | 2,2(b,g,r,a) | 2,1(b,g,r,a)|
+		punpcklbw xmm1, xmm7	;xmm1 = | 2,3(b,g,r,a) | 2,2(b,g,r,a)|
+		paddusw xmm1, xmm0		;xmm1 = | 2,2 + 2,3 | 2,1 + 2,2|
 		
-		psrlw xmm4, 1	;xmm4 = | *****  | (A + B)/2 |
-		psrlw xmm1, 1	;xmm1 = | (B+D)/2 | (A+C)/2 |
-		psrlw xmm5, 2	;xmm5 = | ****** | (A+B+C+D)/4 |
-		packuswb xmm4, xmm7	;xmm4 = | ** | ** | ** | (A + B)/2 |
-		packuswb xmm1, xmm7	;xmm1 = | ** | ** | ** | (A + C)/2 |
-		packuswb xmm5, xmm7	;xmm5 = | ** | ** | ** | (A + B + C + D)/4 |
-		
-		pslldq xmm0, 12			;	
-		psrldq xmm0, 12			;xmm0 = | 0000 | 0000 | 0000 | A(b,g,r,a)|
-		pslldq xmm4, 4			;xmm4 = | ** | ** | (A + B)/2 | 0000 |
-		paddusb xmm0, xmm4		;xmm0 = | 0000 | 0000 | (A + B)/2 | A(b,g,r,a)|
-		movq qword [r11], xmm0
-		
-		pslldq xmm5, 4			;xmm5 = | ** | ** | (A + B + C + D)/4 | 0000 |
-		pslldq xmm1, 12
-		psrldq xmm1, 12			;xmm1 = | ** | ** | 0000 | (A + C)/2 |
-		paddusb xmm1, xmm5		;xmm1 = | ** | ** | (A + B + C + D)/4 | (A + C)/2 |
-		movq qword [r11+rbx], xmm0
-		
-		add r10, 4
-		add r11, 8
+		paddusw xmm3, xmm0		;xmm3 = | 2,2+1,2 | 2,1+1,1 |
+		paddusw xmm2, xmm1		;xmm2 = | 1,2+1,3+2,2+2,3 | 1,1+1,2+2,1+2,2|
+		psrlw xmm3, 1			;xmm3 = | (2,2+1,2)/2 | (2,1+1,1)/2 |
+		psrlw xmm2, 2			;xmm2 = | (1,2+1,3+2,2+2,3)/4 | (1,1+1,2+2,1+2,2)/4 |
+		packuswb xmm3, xmm7		;xmm3 = | 0000 | 0000 | (2,2+1,2)/2 | (2,1+1,1)/2 |
+		packuswb xmm2, xmm7		;xmm2 = | 0000 | 0000 | (1,2+1,3+2,2+2,3)/4 | (1,1+1,2+2,1+2,2)/4 
+		pshufd xmm3, xmm3, 0x98
+		pshufd xmm2, xmm2, 0x62
+		paddusb xmm3, xmm2
+		movdqu [r11+rbx], xmm3
+				
+		add r10, 8
+		add r11, 16
 		dec r9d
 		cmp r9d, 0
 		jg .ciclo_columnas
@@ -78,8 +76,8 @@ push rbx
 .borde_superior:
 		mov r10, rdi
 		mov r11, rcx
-		lea rcx, [esi-2]
-		shr rcx, 1
+		lea rcx, [esi-1]
+		;shr rcx, 1
 		.ciclo:
 			movdqu xmm0, [r10]		;xmm0 = | n4(b,g,r,a) | n3(b,g,r,a) | n2(b,g,r,a) | n1(b,g,r,a)|
 			movdqu xmm1, xmm0
@@ -105,7 +103,7 @@ push rbx
 		;solo faltaria procesar los dos ultimos pixeles
 		pxor xmm0, xmm0	; para asegurarme que la parte alta no tenga basura
 		pxor xmm1, xmm1
-		movq qword xmm0, [r10]	;xmm0 = | 0000 | 0000 | n,n(b,g,r,a) | n,n-1(b,g,r,a)|
+		movq xmm0, [r10]	;xmm0 = | 0000 | 0000 | n,n(b,g,r,a) | n,n-1(b,g,r,a)|
 		movdqu xmm1, xmm0
 		psrldq xmm1, 4			;xmm1 = | 0000 | 0000 | 0000 | n,n(b,g,r,a) |
 		punpcklbw xmm0, xmm7	;xmm0 = | n,n(b,g,r,a) | n,n-1(b,g,r,a)|
@@ -132,16 +130,47 @@ pop rbp
 ret
 
 borde_derecho:
-	movdqu xmm0, [r10]		;xmm0 = | **** | **** | **** | PixelSuperior(b,g,r,a)|
-	movdqu xmm1, [r10+rax]	;xmm1 = | **** | **** | **** | PixelInferior(b,g,r,a)|
-	punpcklbw xmm0, xmm7	;xmm0 = | **** | PixelSuperior(b,g,r,a) |
-	punpcklbw xmm1, xmm7	;xmm1 = | **** | PixelInferior(b,g,r,a) |
-	paddusb xmm1, xmm0		;xmm1 = | **** | PixelInf(b,g,r,a) + PixelSup(b,g,r,a) |
-	psrlw xmm1, 1			;xmm1 = | **** | (PixelInf(b,g,r,a) + PixelSup(b,g,r,a))/2 |
-	packuswb xmm1, xmm7		;xmm1 = | **** | **** | **** | (PixelInf(b,g,r,a) + PixelSup(b,g,r,a))/2 |
-	packuswb xmm0, xmm7		;xmm0 = | **** | **** | **** | PixelSuperior(b,g,r,a)|
-	pshufd xmm0 , xmm0, 0x00	;xmm0 = | **** | **** | PixelSup(b,g,r,a) | PixelSup(b,g,r,a)|
-	pshufd xmm1 , xmm1, 0x00	;xmm1 = | **** | **** | (PixelInf(b,g,r,a) + PixelSup(b,g,r,a))/2 | (PixelInf(b,g,r,a) + PixelSup(b,g,r,a))/2 |
-	movq qword [r11], xmm0
-	movq qword [r11+rbx], xmm1
+	;estando en una fila i y las 2 ultimas columnas
+	pxor xmm0, xmm0	; para asegurarme que la parte alta no tenga basura
+	;pxor xmm1, xmm1
+	movq xmm0, [r10]	;xmm0 = | 0000 | 0000 | i,n(b,g,r,a) | i,n-1(b,g,r,a)|
+	movdqu xmm1, xmm0
+	psrldq xmm1, 4			;xmm1 = | 0000 | 0000 | 0000 | i,n(b,g,r,a) |
+	punpcklbw xmm0, xmm7	;xmm0 = | i,n(b,g,r,a) | i,n-1(b,g,r,a)|
+	punpcklbw xmm1, xmm7	;xmm1 = | 0000 | i,n(b,g,r,a) |
+	paddusw xmm1, xmm0		;xmm1 = | 0000 | i,n + i,n-1 |
+	
+	movdqu xmm3, xmm0		;xmm3 = | i,n(b,g,r,a) | i,n-1(b,g,r,a)|
+	movdqu xmm2, xmm1		;xmm2 = | 0000 | i,n + i,n-1 |
+	
+	psrlw xmm1, 1			;xmm1 = | 0000 | (i,n + i,n-1)/2 |
+	packuswb xmm0, xmm7		;xmm0 = | 0000 | 0000 | i,n | i,n-1 |
+	packuswb xmm1, xmm7		;xmm1 = | 0000 | 0000 | 0000 | (i,n + i,n-1)/2 |
+	
+	pshufd xmm0, xmm0, 0x58	;xmm0 = | i,n | i,n | 0000 | i,n-1 |
+	pshufd xmm1, xmm1, 0xA2	;xmm1 = | 0000 | 0000 | (i,n + i,n-1)/2 | 0000 |
+	paddusb xmm0, xmm1		;xmm0 = | i,n | i,n | (i,n + i,n-1)/2 | i,n-1 |
+	movdqu [r11], xmm0
+	
+	pxor xmm0, xmm0	; para asegurarme que la parte alta no tenga basura
+	;pxor xmm1, xmm1
+	movq xmm0, [r10+rax]	;xmm0 = | 0000 | 0000 | i+1,n(b,g,r,a) | i+1,n-1(b,g,r,a)|
+	movdqu xmm1, xmm0
+	psrldq xmm1, 4			;xmm1 = | 0000 | 0000 | 0000 | i+1,n(b,g,r,a) |
+	punpcklbw xmm0, xmm7	;xmm0 = | i+1,n(b,g,r,a) | i+1,n-1(b,g,r,a)|
+	punpcklbw xmm1, xmm7	;xmm1 = | 0000 | i+1,n(b,g,r,a) |
+	paddusw xmm1, xmm0		;xmm1 = | (i+1,n) | (i+1,n-1)+(i+1,n) |
+	
+	paddusw xmm3, xmm0		;xmm3 = | (i,n)+(i+1,n) | (i,n-1)+(i+1,n-1)|
+	paddusw xmm2, xmm1		;xmm2 = | (i+1,n) | (i,n) + (i,n-1) + (i+1,n-1) + (i+1,n)|
+	psrlw xmm3, 1			;xmm3 = | ((i,n)+(i+1,n))/2 | ((i,n-1)+(i+1,n-1))/2|
+	psrlw xmm2, 2			;xmm2 = | ((i+1,n))/4 | ((i,n) + (i,n-1) + (i+1,n-1) + (i+1,n))/4 |
+	packuswb xmm3, xmm7		;xmm3 = | 0000 | 0000 | ((i,n)+(i+1,n))/2 | ((i,n-1)+(i+1,n-1))/2|
+	packuswb xmm2, xmm7		;xmm2 = | 0000 | 0000 | ((i+1,n))/4 | ((i,n)+(i,n-1)+(i+1,n-1)+(i+1,n))/4 |
+	pshufd xmm3, xmm3, 0x58	
+	pshufd xmm2, xmm2, 0xA2	
+	paddusb xmm2, xmm3
+	
+	movdqu [r11+rbx], xmm2
+	
 ret
