@@ -16,6 +16,7 @@
 
 
 
+
 uint8_t saturation(uint8_t num1, uint8_t num2){
 	if(num1 < num2){
 		 return num1;
@@ -36,10 +37,7 @@ double timeval_diff(struct timeval *a, struct timeval *b)
 
 void C_linearZoom(uint8_t* src, uint32_t srcw, uint32_t srch,
                   uint8_t* dst, uint32_t dstw, uint32_t dsth __attribute__((unused))) {
-		
-		// clock_t start = clock();		PARA MEDIDA EN MILISEGUNDOS
-		// double secs;					PARA MEDIDDA EN MILISEGUNDOS
-		
+				
 		struct timeval t_ini, t_fin;
   		double secs;
 
@@ -157,11 +155,6 @@ short val_b, val_g, val_r;
   gettimeofday(&t_fin, NULL);
 
   secs = timeval_diff(&t_fin, &t_ini);
-  printf("%.16g milliseconds\n", secs * 1000.0);				//MEDIDA EN MICRO SEGUNDOS 
+  printf("%.16g microsegundos\n", secs * 1000.0);				//MEDIDA EN MICRO SEGUNDOS 
 	
-	/* tenemos el tiempo en milisegundos*/	
-	//clock_t end = clock();									PARA MEDIDA EN MILISEGUNDOS
-	//secs = (double)(end - start) / CLOCKS_PER_SEC;			PARA MEDIDA EN MILISEGUNDOS
-	//printf("%.16g milisegundos\n", secs * 1000.0);			PARA MEDIDA EN MILISEGUNDOS
-	//printf("El Tiempo es: %d\n",(end - start));
 }

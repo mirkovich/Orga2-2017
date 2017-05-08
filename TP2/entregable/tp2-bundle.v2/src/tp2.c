@@ -13,6 +13,7 @@
 #include "filters/filters.h"
 //#include "tiempos/tiempo.h"
 #include <time.h>
+#include <sys/time.h>
 #define MAXOPSPARAM 6
 
 typedef struct s_options {
@@ -51,10 +52,9 @@ int main(int argc, char* argv[]){
     result = run_fourCombine(opt.c_asm, opt.ops[0], opt.ops[1]);
   } else
   if(!strcmp(opt.filter,"linearZoom") && opt.valid==2) {
-    //clock_t start = clock();  
+      
     result = run_linearZoom(opt.c_asm, opt.ops[0], opt.ops[1]);
-    //clock_t end = clock();
-    //fprintf("%llu\n", "3" ,( end - start ) );
+
   } else 
   if(!strcmp(opt.filter,"maxCloser") && opt.valid==3) {
     result = run_maxCloser(opt.c_asm, opt.ops[0], opt.ops[1], atof(opt.ops[2]));
