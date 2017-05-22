@@ -1,9 +1,6 @@
 #!/bin/bash
  
-cantDeIteracion=200
-
-
-for ((i=0 ; i< cantDeIteracion; i++)) 
+for ((i=0 ; i< $4; i++)) 
 do 
 	./tp2 c $1 $2 $3
 	./tp2 asm $1 $2 $3

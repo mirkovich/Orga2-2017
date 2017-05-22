@@ -84,7 +84,7 @@ int main(int argc, char* argv[]){
  char *arch_tiempos = strcat(opt.filter,"resumendeTiempos.txt");
  FILE *pFile;
  pFile = fopen(arch_tiempos, "a");   
- fprintf(pFile, "%u %u\n", opt.c_asm,delta);
+ fprintf(pFile, "%u,%u\n", opt.c_asm,delta);
  
  return 0;
 }
