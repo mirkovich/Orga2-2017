@@ -5,12 +5,14 @@
 /*                                                                           */
 /* ************************************************************************* */
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
 #include "run.h"
 #include "bmp/bmp.h"
 #include "filters/filters.h"
+#include "rdtsc.h"
 //#include "tiempos/tiempo.h"
 #include <time.h>
 #include <sys/time.h>
@@ -32,40 +34,59 @@ int read_options(int argc, char* argv[], options* opt);
 
 int main(int argc, char* argv[]){
 
-  //(0) leer parametros
+	//(0) leer parametros
   options opt;
   if (argc == 1) {print_help(argv[0]); return 0;}
   if(read_options(argc, argv, &opt))
   {printf("ERROR reading parameters\n"); return 1;}
   
-  //(1) ejecutar filtro
+	//~ aca es el archivo saida con los tiempos que tarda el algoritmo que se crea (NOTA, cambiar 
+	//~ el nombre del archivo porq sino siempre se escribe sobre el mismo archivo) o borrar y correr 
+
+	//~ para medir los tiempos usando RDTS
+  unsigned long start, end;
+	//~ tiempo de inicio 
+  RDTSC_START(start);
+	//(1) ejecutar filtro
   int result;
+ 
   if(!strcmp(opt.filter,"rgb2yuv") && opt.valid==2) {
-
     result = run_convertRGBtoYUV(opt.c_asm, opt.ops[0], opt.ops[1]);
-
+	 
   } else
   if(!strcmp(opt.filter,"yuv2rgb") && opt.valid==2) {
     result = run_convertYUVtoRGB(opt.c_asm, opt.ops[0], opt.ops[1]);
+  
   } else    
   if(!strcmp(opt.filter,"fourCombine") && opt.valid==2) {
     result = run_fourCombine(opt.c_asm, opt.ops[0], opt.ops[1]);
+  
   } else
   if(!strcmp(opt.filter,"linearZoom") && opt.valid==2) {
-      
     result = run_linearZoom(opt.c_asm, opt.ops[0], opt.ops[1]);
 
   } else 
   if(!strcmp(opt.filter,"maxCloser") && opt.valid==3) {
     result = run_maxCloser(opt.c_asm, opt.ops[0], opt.ops[1], atof(opt.ops[2]));
+ 
   } else { 
     printf("Error: filtro desconocido (%s)\n",opt.filter);
     return 1;}
   if(result) { 
     printf("Error: ejecutando el filtro %s\n",opt.filter);
     return 1;}
-  
-  return 0;
+	//~ tiempo final
+ RDTSC_STOP(end);
+	//~ cantidad de ciclos de ejecucion	
+ unsigned long delta = end - start;
+ 
+	//~ preparacion de la salida de datos  el archivo tiene nombre "nombredelfiltro++resumendeTiempos.txt"
+ char *arch_tiempos = strcat(opt.filter,"resumendeTiempos.txt");
+ FILE *pFile;
+ pFile = fopen(arch_tiempos, "a");   
+ fprintf(pFile, "%u %u\n", opt.c_asm,delta);
+ 
+ return 0;
 }
 
 void print_help(char* name) {
