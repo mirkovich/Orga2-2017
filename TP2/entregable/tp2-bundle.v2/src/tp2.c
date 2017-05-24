@@ -81,7 +81,7 @@ int main(int argc, char* argv[]){
  unsigned long delta = end - start;
  
 	//~ preparacion de la salida de datos  el archivo tiene nombre "nombredelfiltro++resumendeTiempos.txt"
- char *arch_tiempos = strcat(opt.filter,"resumendeTiempos.txt");
+ char *arch_tiempos = strcat(opt.filter,"resumendeTiempos.cvs");
  FILE *pFile;
  pFile = fopen(arch_tiempos, "a");   
  fprintf(pFile, "%u,%u\n", opt.c_asm,delta);
