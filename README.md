@@ -27,7 +27,8 @@ con el siguiente formato:
 + 1,30166855
 
 Donde el 0 hace referencia a C y el 1 a ASM, y los números que continua a cada uno es la cantidad de clocks que tarda el filtro tanto en C como en ASM 
-##Gráfica
+
+## Gráfica
 
 Para poder tener estos datos de una forma más explicita se realizó un plot que realiza (dado un archivo.cvs) un gráfico de barras en el cual se observa una comparacion entre la media de correr el filtro en C y la media en ASM. 
 
