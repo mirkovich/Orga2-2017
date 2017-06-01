@@ -65,7 +65,7 @@ ASM_fourCombine:				;RDI = src, ESI = srcw, EDX = srch
 .seguir:
 	add rdi, 8
 	add rsi, 4
-.cont
+.cont:
 	loop .ciclo
 	
 	pop r15
