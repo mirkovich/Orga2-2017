@@ -64,7 +64,7 @@ void C_maxCloser(uint8_t* src, uint32_t srcw, uint32_t srch, uint8_t* dst, uint3
 								}
 							}  
 						}
-					printf("%i\n", max_g);
+					//printf("%i\n", max_g);
 
 					// tengo los maximos..	
 					p_dst->a =	((p_src->a * (1.0- val)) + (max_a * val)); 
