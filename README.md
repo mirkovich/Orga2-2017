@@ -10,7 +10,7 @@ Se agregó un archivo llamado runTest-C-ASM.sh, es un archivo bash que se ejecut
 
 En el directorio donde se encuentra el archivo abrimos una terminal y escribimos .\runTest-C-ASM.sh (filtro) (imagen fuente) (imagen destino) (cantidad de ejecuciones)
 
-Esto genera un archivo .txt llamado "nombredelfiltro.resumendeTiempos.cvs"
+Esto genera un archivo .cvs llamado "nombredelfiltro.resumendeTiempos.cvs"
 
 con el siguiente formato:
 
