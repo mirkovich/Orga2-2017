@@ -80,8 +80,8 @@ int main(int argc, char* argv[]){
 	//~ cantidad de ciclos de ejecucion	
  unsigned long delta = end - start;
  
-	//~ preparacion de la salida de datos  el archivo tiene nombre "nombredelfiltro++resumendeTiempos.txt"
- char *arch_tiempos = strcat(opt.filter,"resumendeTiempos.cvs");
+	//~ preparacion de la salida de datos  el archivo tiene nombre "nombredelfiltro++resumendeTiempos.cvs"
+ char *arch_tiempos = strcat(opt.filter,"-resumendeTiempos.csv");
  FILE *pFile;
  pFile = fopen(arch_tiempos, "a");   
  fprintf(pFile, "%u,%u\n", opt.c_asm,delta);
