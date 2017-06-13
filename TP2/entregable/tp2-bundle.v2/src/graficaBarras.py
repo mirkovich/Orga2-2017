@@ -52,26 +52,31 @@ with open (sys.argv[1]) as cvsarchivo:
 	dsASM = math.sqrt(varianzaASM)
 	dsC = math.sqrt(varianzaC)
 		
-	p90asm = promedioTiemposASM + 1.282 * dsASM
-	p10asm = promedioTiemposASM - 1.282 * dsASM
+	p90asm = promedioTiemposASM + (1.282 * dsASM)
+	p10asm = promedioTiemposASM - (1.282 * dsASM)
 	
- 	p90c = promedioTiemposC + 1.282 * dsC
-	p10c = promedioTiemposC - 1.282 * dsC
+ 	p90c = promedioTiemposC + (1.282 * dsC)
+	p10c = promedioTiemposC - (1.282 * dsC)
 	
 	tiemposASMfiltrados = [x for x in tiemposASM if ( p90asm >=  (float)(x)) or ( (float)(x) >= p10asm)]
-	tiemposCfiltrados = [x for x in tiemposASM if (p90c >= (float)(x)) or (((float)(x)) >= p10c )]
+	tiemposCfiltrados = [x for x in tiemposC if (p90c >= (float)(x)) or (((float)(x)) >= p10c )]
 	
 	sumASMfiltrado = 0
 	sumCfiltrado = 0 
 	for i in tiemposASMfiltrados:
-		sumASMfiltrado = sumASMfiltrado + i
+		sumASMfiltrado =+ i
 
 	for i in tiemposCfiltrados:
-		sumCfiltrado = sumCfiltrado + i 	
+		sumCfiltrado =+ i 	
 	
 	promedioTiemposASMfiltrado = sumASMfiltrado /len(tiemposASMfiltrados) 
 	promedioTiemposCfiltrado = sumCfiltrado /len(tiemposCfiltrados) 
-
+	print(promedioTiemposASM)
+	print(promedioTiemposC)
+	print(varianzaASM)
+	print(varianzaC)
+	print(dsASM)
+	print(dsC)
 
 	lenguajes = ("C","ASM")
 	tiempoPromedio = (promedioTiemposCfiltrado,promedioTiemposASMfiltrado)
