@@ -1,14 +1,20 @@
 #!/bin/bash
- 
-for ((i=0 ; i< $4; i++)) 
-do 
-	./tp2 asm $1 $2 $3 
+for n in $(seq 24 24 744)
+do
+	echo $n
+		for ((i=0 ; i < $4; i++)) 
+			do 
+				./tp2 $1 $2 ../tests/data/imagenes_a_testear/lena.$n $3
+			done
 done
 
-for ((i=0 ; i< $4; i++)) 
-do 
-	./tp2 c $1 $2 $3
+#~ for m in $(seq 24 24 1032)
+#~ do
+	#~ echo $m
 
-done 
-	
+		#~ for ((i=0 ; i < $3; i++)) 
+			#~ do 
+				#~ ./tp2 c $1 ../tests/data/imagenes_a_testear/lena.$m $2
+			#~ done 
+#~ done	
 

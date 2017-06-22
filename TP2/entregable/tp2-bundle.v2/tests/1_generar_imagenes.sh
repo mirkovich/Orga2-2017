@@ -13,6 +13,6 @@ do
 	for s in ${SIZES[*]} ${SIZESMEM[*]}
 	do
 		echo "  *" $s
-		`echo  "convert -resize $s!" $DATADIR/$f ` $TESTINDIR/`echo "$f" | cut -d'.' -f1`.$s.bmp
+		`echo  "convert -resize $s!" $DATADIR/$f ` $TESTINDIR/`echo "$f" | cut -d'.' -f1`.$s
 	done
 done
